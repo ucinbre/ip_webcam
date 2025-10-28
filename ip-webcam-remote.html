@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Remote Camera Stream</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 900px;
+            width: 100%;
+        }
+        h1 {
+            color: #1e3c72;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .tab-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .tab-btn {
+            padding: 12px 24px;
+            border: 2px solid #1e3c72;
+            background: white;
+            color: #1e3c72;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        .tab-btn:hover {
+            background: #1e3c72;
+            color: white;
+        }
+        .tab-btn.active {
+            background: #1e3c72;
+            color: white;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.5s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        video {
+            width: 100%;
+            max-width: 640px;
+            border-radius: 15px;
+            background: #000;
+            display: block;
+            margin: 0 auto 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        canvas {
+            width: 100%;
+            max-width: 640px;
+            border-radius: 15px;
+            background: #000;
+            display: none;
+            margin: 0 auto 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-primary {
+            background: #1e3c72;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #2a5298;
+            transform: scale(1.05);
+        }
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background: #7f8c8d;
+        }
+        .info-box {
+            background: #f8f9fa;
+            border-left: 4px solid #1e3c72;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        .info-box h3 {
+            color: #1e3c72;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        .info-box p, .info-box li {
+            color: #555;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 8px;
+        }
+        .info-box ul, .info-box ol {
+            margin-left: 20px;
+            margin-top: 10px;
+        }
+        .info-box code {
+            background: #e9ecef;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+        .share-link {
+            background: #1e3c72;
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            margin: 20px 0;
+            display: none;
+        }
+        .share-link.active {
+            display: block;
+        }
+        .link-text {
+            background: white;
+            color: #1e3c72;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            word-break: break-all;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        .status.active {
+            background: #2ecc71;
+            color: white;
+        }
+        .status.inactive {
+            background: #95a5a6;
+            color: white;
+        }
+        .status.error {
+            background: #e74c3c;
+            color: white;
+        }
+        select {
+            padding: 10px;
+            border-radius: 8px;
+            border: 2px solid #1e3c72;
+            font-size: 14px;
+            margin-bottom: 15px;
+            width: 100%;
+            max-width: 300px;
+        }
+        input[type="text"] {
+            padding: 12px;
+            border: 2px solid #1e3c72;
+            border-radius: 8px;
+            font-size: 14px;
+            width: 100%;
+            max-width: 400px;
+            margin-bottom: 15px;
+        }
+        .warning {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .warning p {
+            color: #856404;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌐 Remote Camera Access</h1>
+        <p class="subtitle">Akses kamera dari beda WiFi/jaringan</p>
+
+        <div class="tab-buttons">
+            <button class="tab-btn active" onclick="switchTab('simple')">📱 Mode Sederhana</button>
+            <button class="tab-btn" onclick="switchTab('advanced')">🔧 Mode Advanced</button>
+            <button class="tab-btn" onclick="switchTab('guide')">📖 Panduan</button>
+        </div>
+
+        <!-- TAB 1: SIMPLE MODE -->
+        <div id="simple-tab" class="tab-content active">
+            <div class="warning">
+                <p>⚠️ <strong>Catatan:</strong> Untuk streaming antar jaringan berbeda, browser memerlukan HTTPS atau tunnel service. Cara paling praktis: gunakan <strong>USB + Scrcpy</strong>.</p>
+            </div>
+
+            <div class="status inactive" id="status">Kamera belum aktif</div>
+
+            <video id="video" autoplay playsinline muted></video>
+            <canvas id="canvas"></canvas>
+
+            <div class="controls">
+                <select id="cameraSelect">
+                    <option value="">Pilih Kamera...</option>
+                </select>
+            </div>
+
+            <div class="controls">
+                <button class="btn-primary" onclick="startCamera()">📷 Aktifkan Kamera</button>
+                <button class="btn-secondary" onclick="switchCameraFacing()">🔄 Ganti Kamera</button>
+                <button class="btn-danger" onclick="stopCamera()">⏹️ Stop</button>
+            </div>
+
+            <div class="controls">
+                <button class="btn-primary" onclick="generateShareableLink()">🔗 Buat Link Share</button>
+            </div>
+
+            <div class="share-link" id="shareLink">
+                <p>📤 Share link ini untuk akses dari device lain:</p>
+                <div class="link-text" id="linkText">-</div>
+                <button class="btn-secondary" onclick="copyLink()">📋 Copy Link</button>
+                <p style="font-size: 12px; margin-top: 10px;">⚠️ Link hanya berfungsi jika kedua device bisa saling akses (LAN atau VPN)</p>
+            </div>
+
+            <div class="info-box">
+                <h3>💡 Cara Pakai:</h3>
+                <ol>
+                    <li>Di HP: Klik "Aktifkan Kamera" dan izinkan akses</li>
+                    <li>Klik "Buat Link Share"</li>
+                    <li>Copy link dan buka di laptop</li>
+                </ol>
+                <p><strong>Keterbatasan:</strong> Browser memerlukan koneksi yang aman (HTTPS) atau kedua device dalam jaringan yang sama.</p>
+            </div>
+        </div>
+
+        <!-- TAB 2: ADVANCED MODE -->
+        <div id="advanced-tab" class="tab-content">
+            <div class="info-box">
+                <h3>🔧 Solusi untuk Beda WiFi/Jaringan:</h3>
+                
+                <h4 style="margin-top: 15px;">1️⃣ USB + Scrcpy (PALING DIREKOMENDASIKAN)</h4>
+                <p><strong>Setup:</strong></p>
+                <ul>
+                    <li>Download scrcpy: <code>https://github.com/Genymobile/scrcpy</code></li>
+                    <li>HP: Aktifkan USB Debugging (Settings → Developer Options)</li>
+                    <li>Hubungkan HP ke laptop via USB</li>
+                    <li>Jalankan: <code>scrcpy</code> di terminal/cmd</li>
+                </ul>
+                <p><strong>Kelebihan:</strong> Tidak perlu WiFi, tidak perlu install app di HP, latency rendah, kualitas tinggi</p>
+
+                <h4 style="margin-top: 15px;">2️⃣ Hotspot dari HP</h4>
+                <ul>
+                    <li>HP: Aktifkan Personal Hotspot</li>
+                    <li>Laptop: Connect ke hotspot HP</li>
+                    <li>Sekarang dalam 1 jaringan, gunakan Mode Sederhana</li>
+                </ul>
+
+                <h4 style="margin-top: 15px;">3️⃣ VPN / Tailscale (Untuk Remote Jarak Jauh)</h4>
+                <ul>
+                    <li>Install Tailscale di HP dan Laptop</li>
+                    <li>Kedua device akan dapat IP private yang bisa saling akses</li>
+                    <li>Akses via IP Tailscale</li>
+                </ul>
+
+                <h4 style="margin-top: 15px;">4️⃣ Ngrok (Untuk WebRTC)</h4>
+                <ul>
+                    <li>Install ngrok di device yang host</li>
+                    <li>Jalankan server lokal</li>
+                    <li>Ngrok akan buat public URL dengan HTTPS</li>
+                    <li>Akses dari device lain via URL tersebut</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- TAB 3: GUIDE -->
+        <div id="guide-tab" class="tab-content">
+            <div class="info-box">
+                <h3>📖 Panduan Lengkap: Scrcpy (Solusi Terbaik)</h3>
+                
+                <h4>Windows:</h4>
+                <ol>
+                    <li>Download scrcpy dari: <code>https://github.com/Genymobile/scrcpy/releases</code></li>
+                    <li>Extract file ZIP</li>
+                    <li>HP: Settings → About Phone → Tap "Build Number" 7x</li>
+                    <li>Settings → Developer Options → USB Debugging (ON)</li>
+                    <li>Hubungkan HP ke laptop via USB</li>
+                    <li>Jalankan <code>scrcpy.exe</code></li>
+                </ol>
+
+                <h4>Mac:</h4>
+                <ol>
+                    <li>Install Homebrew jika belum: <code>/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"</code></li>
+                    <li>Install scrcpy: <code>brew install scrcpy</code></li>
+                    <li>Setup USB Debugging di HP (sama seperti di atas)</li>
+                    <li>Hubungkan HP via USB</li>
+                    <li>Terminal: <code>scrcpy</code></li>
+                </ol>
+
+                <h4>Linux:</h4>
+                <ol>
+                    <li>Ubuntu/Debian: <code>sudo apt install scrcpy</code></li>
+                    <li>Arch: <code>sudo pacman -S scrcpy</code></li>
+                    <li>Setup USB Debugging di HP</li>
+                    <li>Hubungkan USB</li>
+                    <li>Terminal: <code>scrcpy</code></li>
+                </ol>
+
+                <h4>📱 Untuk Wireless (setelah setup USB pertama kali):</h4>
+                <ol>
+                    <li>Hubungkan USB dulu, jalankan: <code>scrcpy --tcpip</code></li>
+                    <li>Cek IP HP di Settings → About → Status</li>
+                    <li>Cabut USB</li>
+                    <li>Jalankan: <code>scrcpy --tcpip=192.168.x.x:5555</code> (ganti dengan IP HP)</li>
+                </ol>
+
+                <p style="margin-top: 20px;"><strong>✅ Dengan scrcpy, Anda bisa:</strong></p>
+                <ul>
+                    <li>Lihat layar HP di laptop (termasuk kamera saat dibuka)</li>
+                    <li>Kontrol HP dari laptop</li>
+                    <li>Record screen</li>
+                    <li>Screenshot</li>
+                    <li>Tidak perlu install apa-apa di HP</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let stream = null;
+        let currentFacing = 'environment';
+        let devices = [];
+
+        async function getCameras() {
+            try {
+                const mediaDevices = await navigator.mediaDevices.enumerateDevices();
+                devices = mediaDevices.filter(device => device.kind === 'videoinput');
+                
+                const select = document.getElementById('cameraSelect');
+                select.innerHTML = '<option value="">Pilih Kamera...</option>';
+                
+                devices.forEach((device, index) => {
+                    const option = document.createElement('option');
+                    option.value = device.deviceId;
+                    option.text = device.label || `Kamera ${index + 1}`;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error getting cameras:', error);
+            }
+        }
+
+        async function startCamera() {
+            try {
+                const select = document.getElementById('cameraSelect');
+                const deviceId = select.value;
+                
+                const constraints = {
+                    video: deviceId ? 
+                        { deviceId: { exact: deviceId } } : 
+                        { facingMode: currentFacing },
+                    audio: false
+                };
+
+                stream = await navigator.mediaDevices.getUserMedia(constraints);
+                document.getElementById('video').srcObject = stream;
+                
+                document.getElementById('status').textContent = '🟢 Kamera aktif';
+                document.getElementById('status').className = 'status active';
+                
+                await getCameras();
+                
+            } catch (error) {
+                document.getElementById('status').textContent = '❌ Error: ' + error.message;
+                document.getElementById('status').className = 'status error';
+                alert('Gagal mengakses kamera: ' + error.message);
+            }
+        }
+
+        async function switchCameraFacing() {
+            if (!stream) {
+                alert('Aktifkan kamera terlebih dahulu');
+                return;
+            }
+            
+            currentFacing = currentFacing === 'environment' ? 'user' : 'environment';
+            stopCamera();
+            await startCamera();
+        }
+
+        function stopCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+            document.getElementById('video').srcObject = null;
+            document.getElementById('status').textContent = 'Kamera dihentikan';
+            document.getElementById('status').className = 'status inactive';
+        }
+
+        function generateShareableLink() {
+            const currentUrl = window.location.href.split('?')[0];
+            const shareUrl = currentUrl + '?view=true';
+            
+            document.getElementById('linkText').textContent = shareUrl;
+            document.getElementById('shareLink').classList.add('active');
+        }
+
+        function copyLink() {
+            const linkText = document.getElementById('linkText').textContent;
+            navigator.clipboard.writeText(linkText).then(() => {
+                alert('Link berhasil di-copy!');
+            }).catch(err => {
+                alert('Gagal copy link: ' + err);
+            });
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(tabName + '-tab').classList.add('active');
+        }
+
+        window.onload = () => {
+            getCameras();
+            
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('view') === 'true') {
+                alert('Mode viewer. Fitur ini memerlukan WebRTC signaling server untuk bekerja.\n\nUntuk solusi praktis, gunakan USB + Scrcpy.');
+            }
+        };
+    </script>
+</body>
+</html>
